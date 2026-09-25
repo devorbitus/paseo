@@ -101,6 +101,7 @@ export interface PluginClientContext extends PluginCommandCapabilities {
   addTimelineRenderer<Schema extends ZodType>(
     contribution: PluginTimelineRendererContribution<Schema>,
   ): PluginCleanup;
+  addTurnAction(contribution: PluginTurnActionContribution): PluginCleanup;
   openPanel(id: string, options: PluginClientOpenPanelOptions): void;
 }
 
@@ -166,6 +167,18 @@ export interface PluginTimelineRendererContribution<Schema extends ZodType = Zod
   version: number;
   schema: Schema;
   Component: ComponentType<PluginTimelineItemProps<ZodOutput<Schema>>>;
+}
+
+export interface PluginTurnActionProps extends PluginHostProps {
+  agentId: string;
+  /** Markdown of the completed assistant turn: the same text the copy button copies. */
+  getContent(): string;
+}
+
+/** A button in the footer of each completed assistant turn, after copy and fork. */
+export interface PluginTurnActionContribution {
+  id: string;
+  Component: ComponentType<PluginTurnActionProps>;
 }
 
 export interface PluginCommandCapabilities {

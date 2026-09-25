@@ -106,6 +106,7 @@ import { recordRenderProfileReasons } from "@/utils/render-profiler";
 import { useRetainedPanelActive } from "@/components/retained-panel";
 import { useStreamHistoryWindow } from "./use-stream-history-window";
 import { PluginTimelineItemView, useInstalledTimelineTransform } from "@/plugins/timeline";
+import type { TurnActionScope } from "@/plugins/turn-actions";
 
 function renderLiveAuxiliaryNode(input: {
   pendingPermissions: ReactNode;
@@ -156,6 +157,7 @@ function renderStreamItemWithTurnFooter(input: {
   layoutItem: StreamLayoutItem;
   strategy: TurnContentStrategy;
   supportsTimelineCursor: boolean;
+  turnActionScope: TurnActionScope;
   onForkAssistantTurn?: AssistantTurnForkHandler;
 }): ReactNode {
   if (!input.content) {
@@ -170,6 +172,7 @@ function renderStreamItemWithTurnFooter(input: {
       timing={footerHost.timing}
       startIndex={footerHost.startIndex}
       supportsTimelineCursor={input.supportsTimelineCursor}
+      turnActionScope={input.turnActionScope}
       onForkAssistantTurn={input.onForkAssistantTurn}
     />
   ) : null;
@@ -908,6 +911,10 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
     );
 
     const bottomTurnFooterHost = streamLayout.auxiliaryTurnFooter;
+    const turnActionScope = useMemo<TurnActionScope>(
+      () => ({ serverId: resolvedServerId, agentId }),
+      [agentId, resolvedServerId],
+    );
 
     const renderStreamItem = useCallback(
       (layoutItem: StreamLayoutItem) => {
@@ -917,6 +924,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
           layoutItem,
           strategy: streamRenderStrategy,
           supportsTimelineCursor: supportsAgentForkContextCursor,
+          turnActionScope,
           onForkAssistantTurn: readOnly ? undefined : handleForkAssistantTurn,
         });
       },
@@ -926,6 +934,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
         renderStreamItemContent,
         streamRenderStrategy,
         supportsAgentForkContextCursor,
+        turnActionScope,
       ],
     );
 
@@ -951,6 +960,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
             host={bottomTurnFooterHost}
             strategy={streamRenderStrategy}
             supportsTimelineCursor={supportsAgentForkContextCursor}
+            turnActionScope={turnActionScope}
             onForkAssistantTurn={readOnly ? undefined : handleForkAssistantTurn}
             onForkInFlightTurn={readOnly ? undefined : handleForkInFlightTurn}
           />
@@ -964,6 +974,7 @@ const AgentStreamViewComponent = forwardRef<AgentStreamViewHandle, AgentStreamVi
         bottomTurnFooterHost,
         streamRenderStrategy,
         supportsAgentForkContextCursor,
+        turnActionScope,
       ],
     );
     const renderModel = useMemo<AgentStreamRenderModel>(() => {

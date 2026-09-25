@@ -83,6 +83,7 @@ describe("evaluatePluginClientBundle", () => {
           plugin.addTheme({ id: "night", name: "Night", appearance: "dark", colors: { background: "#000", foreground: "#fff", raised: "#111", control: "#222", border: "#333", mutedForeground: "#aaa", ring: "#555" } }),
           plugin.addTimelineTransformer({ id: "transformer", query: { itemType: "tool_call" }, transform() { return { items: [] }; } }),
           plugin.addTimelineRenderer({ kind: "card", version: 1, schema, Component }),
+          plugin.addTurnAction({ id: "listen", Component }),
         ];
       `),
       {
@@ -112,6 +113,7 @@ describe("evaluatePluginClientBundle", () => {
         plugin.themes,
         plugin.timelineTransformers,
         plugin.timelineRenderers,
+        plugin.turnActions,
       ].every((items) => items.length === 1),
     ).toBe(true);
     expect(pillCount).toBe(1);
@@ -131,6 +133,7 @@ describe("evaluatePluginClientBundle", () => {
         plugin.themes,
         plugin.timelineTransformers,
         plugin.timelineRenderers,
+        plugin.turnActions,
       ].every((items) => items.length === 0),
     ).toBe(true);
     expect(pillCount).toBe(0);
@@ -163,6 +166,42 @@ describe("evaluatePluginClientBundle", () => {
     expect(plugin.timelineRenderers.map(({ kind, version }) => ({ kind, version }))).toEqual([
       { kind: "test-report", version: 1 },
     ]);
+  });
+
+  it("collects turn actions, including memoized components", () => {
+    const plugin = evaluatePluginClientBundle(
+      "read-aloud",
+      bundle(`
+        const Listen = require("react").memo(function Listen() { return null; });
+        plugin.addTurnAction({ id: "listen", Component: Listen });
+      `),
+    );
+    expect(plugin.turnActions.map((action) => action.id)).toEqual(["listen"]);
+  });
+
+  it("rejects duplicate and invalid turn actions", () => {
+    expect(() =>
+      evaluatePluginClientBundle(
+        "read-aloud",
+        bundle(`
+          function Listen() { return null; }
+          plugin.addTurnAction({ id: "listen", Component: Listen });
+          plugin.addTurnAction({ id: "listen", Component: Listen });
+        `),
+      ),
+    ).toThrow("Duplicate turn action: listen");
+    expect(() =>
+      evaluatePluginClientBundle(
+        "read-aloud",
+        bundle(`plugin.addTurnAction({ id: "listen", Component: "Listen" });`),
+      ),
+    ).toThrow("Turn action listen is not a component");
+    expect(() =>
+      evaluatePluginClientBundle(
+        "read-aloud",
+        bundle(`plugin.addTurnAction({ id: "Listen", Component() { return null; } });`),
+      ),
+    ).toThrow("Invalid turn action id: Listen");
   });
 
   it("rejects unknown timeline item types", () => {

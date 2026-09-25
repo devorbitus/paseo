@@ -579,6 +579,8 @@ export const UserMessage = memo(function UserMessage({
 
 interface AssistantTurnFooterProps {
   getContent: () => string;
+  /** Rendered after copy and fork, before the timing label. */
+  actions?: ReactNode;
   completedAt?: Date;
   durationMs?: number | null;
   onFork?: (target: AssistantForkTarget) => Promise<void> | void;
@@ -623,6 +625,7 @@ const TIMESTAMP_REVEAL_MS = 3000;
  */
 export const AssistantTurnFooter = memo(function AssistantTurnFooter({
   getContent,
+  actions,
   completedAt,
   durationMs,
   onFork,
@@ -684,6 +687,7 @@ export const AssistantTurnFooter = memo(function AssistantTurnFooter({
         containerStyle={assistantTurnFooterStylesheet.copyButton}
       />
       {canFork ? <AssistantForkMenu onFork={handleFork} /> : null}
+      {actions}
       {primaryLabel ? (
         <Pressable
           onPress={handlePress}
