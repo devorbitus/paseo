@@ -10,6 +10,9 @@ const { getNativeReleaseVersion } = require("./native-release-version");
 const appVariant = process.env.APP_VARIANT ?? "production";
 const isFdroidBuild = process.env.PASEO_FDROID_BUILD === "1";
 const isProfileBuild = process.env.PASEO_PROFILE_BUILD === "1";
+// devorbitus fork only: a sideloaded build under a personal Apple team. Free teams cannot sign
+// the push entitlement, so this build drops notifications.
+const isPersonalBuild = appVariant === "personal";
 
 const buildProfile = isFdroidBuild
   ? {
@@ -40,15 +43,17 @@ const buildProfile = isFdroidBuild
         ],
       ],
       fdroidPlugins: [],
-      notificationPlugins: [
-        [
-          "expo-notifications",
-          {
-            icon: "./assets/images/notification-icon.png",
-            color: "#20744A",
-          },
-        ],
-      ],
+      notificationPlugins: isPersonalBuild
+        ? []
+        : [
+            [
+              "expo-notifications",
+              {
+                icon: "./assets/images/notification-icon.png",
+                color: "#20744A",
+              },
+            ],
+          ],
     };
 
 function resolveSecretFile(params) {
@@ -77,6 +82,10 @@ const variants = {
       envKey: "GOOGLE_SERVICE_INFO_PLIST_PROD",
       fallbackRelativePath: "./.secrets/GoogleService-Info.prod.plist",
     }),
+  },
+  personal: {
+    name: "Paseo (devorbitus)",
+    packageId: process.env.PASEO_PERSONAL_BUNDLE_ID ?? "com.devorbitus.paseo",
   },
   development: {
     name: "Paseo Debug",
