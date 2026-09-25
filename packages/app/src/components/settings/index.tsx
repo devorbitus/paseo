@@ -129,7 +129,7 @@ export function SettingsSelect<Value extends string>({
             {options.find((option) => option.value === value)?.label ?? value}
           </Text>
         </DropdownTrigger>
-        <DropdownMenuContent side="bottom" align="end" width={220}>
+        <DropdownMenuContent side="bottom" align="end" width={220} scrollable>
           {options.map((option) => (
             <SettingsOption
               key={option.value}
