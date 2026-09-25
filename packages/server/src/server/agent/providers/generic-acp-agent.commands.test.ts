@@ -10,7 +10,13 @@ import { GenericACPAgentClient } from "./generic-acp-agent.js";
 describe("GenericACPAgentClient slash commands", () => {
   test("lists commands an agent advertises right after session/new", async () => {
     await withFakeACPAgent("commands-after-session-new", async (command, cwd) => {
-      const client = new GenericACPAgentClient({ logger: createTestLogger(), command });
+      const client = new GenericACPAgentClient({
+        logger: createTestLogger(),
+        command,
+        // Long enough that the update always lands inside the wait, however slowly
+        // the fake agent is scheduled.
+        initialCommandsWaitTimeoutMs: 60_000,
+      });
       const session = await client.createSession({ provider: "acp", cwd });
       try {
         await expect(session.listCommands?.()).resolves.toEqual([
@@ -22,7 +28,7 @@ describe("GenericACPAgentClient slash commands", () => {
     });
   });
 
-  test("answers with no commands once the wait expires for an agent that never advertises any", async () => {
+  test("answers with no commands for an agent that never advertises any", async () => {
     await withFakeACPAgent("silent", async (command, cwd) => {
       const client = new GenericACPAgentClient({
         logger: createTestLogger(),
