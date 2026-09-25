@@ -20,6 +20,7 @@ import type { TurnFooterHost } from "./layout";
 import { AssistantForkMenu } from "@/components/assistant-fork-menu";
 import { SyncedLoader } from "@/components/synced-loader";
 import { useRetainedPanelActive } from "@/components/retained-panel";
+import { PluginTurnActions, type TurnActionScope } from "@/plugins/turn-actions";
 
 const ThemedSyncedLoader = withUnistyles(SyncedLoader);
 const workingIndicatorColorMapping = (theme: Theme) => ({ color: theme.colors.foreground });
@@ -48,6 +49,7 @@ export const TurnFooter = memo(function TurnFooter({
   host,
   strategy,
   supportsTimelineCursor,
+  turnActionScope,
   onForkAssistantTurn,
   onForkInFlightTurn,
 }: {
@@ -56,6 +58,7 @@ export const TurnFooter = memo(function TurnFooter({
   host: TurnFooterHost | null;
   strategy: TurnContentStrategy;
   supportsTimelineCursor: boolean;
+  turnActionScope?: TurnActionScope;
   onForkAssistantTurn?: AssistantTurnForkHandler;
   onForkInFlightTurn?: InFlightTurnForkHandler;
 }) {
@@ -79,6 +82,7 @@ export const TurnFooter = memo(function TurnFooter({
       timing={host.timing}
       startIndex={host.startIndex}
       supportsTimelineCursor={supportsTimelineCursor}
+      turnActionScope={turnActionScope}
       onForkAssistantTurn={onForkAssistantTurn}
     />
   );
@@ -90,6 +94,7 @@ export const CompletedTurnFooterRow = memo(function CompletedTurnFooterRow({
   timing,
   startIndex,
   supportsTimelineCursor,
+  turnActionScope,
   onForkAssistantTurn,
 }: {
   strategy: TurnContentStrategy;
@@ -97,6 +102,7 @@ export const CompletedTurnFooterRow = memo(function CompletedTurnFooterRow({
   timing?: TurnTiming;
   startIndex: number;
   supportsTimelineCursor: boolean;
+  turnActionScope?: TurnActionScope;
   onForkAssistantTurn?: AssistantTurnForkHandler;
 }) {
   return (
@@ -107,6 +113,7 @@ export const CompletedTurnFooterRow = memo(function CompletedTurnFooterRow({
         timing={timing}
         startIndex={startIndex}
         supportsTimelineCursor={supportsTimelineCursor}
+        turnActionScope={turnActionScope}
         onForkAssistantTurn={onForkAssistantTurn}
       />
     </TurnFooterRow>
@@ -163,6 +170,7 @@ function CompletedTurnFooter({
   timing,
   startIndex,
   supportsTimelineCursor,
+  turnActionScope,
   onForkAssistantTurn,
 }: {
   strategy: TurnContentStrategy;
@@ -170,6 +178,7 @@ function CompletedTurnFooter({
   timing?: TurnTiming;
   startIndex: number;
   supportsTimelineCursor: boolean;
+  turnActionScope?: TurnActionScope;
   onForkAssistantTurn?: AssistantTurnForkHandler;
 }) {
   const getContent = useCallback(
@@ -180,6 +189,13 @@ function CompletedTurnFooter({
         startIndex,
       }),
     [strategy, items, startIndex],
+  );
+  const turnActions = useMemo(
+    () =>
+      turnActionScope ? (
+        <PluginTurnActions scope={turnActionScope} getContent={getContent} />
+      ) : null,
+    [getContent, turnActionScope],
   );
   const boundary = resolveAssistantTurnForkBoundary({
     items,
@@ -199,6 +215,7 @@ function CompletedTurnFooter({
     <View style={stylesheet.turnFooterSlot}>
       <AssistantTurnFooter
         getContent={getContent}
+        actions={turnActions}
         completedAt={timing?.completedAt}
         durationMs={timing?.durationMs}
         onFork={boundary && onForkAssistantTurn ? handleFork : undefined}

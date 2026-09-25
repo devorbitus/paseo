@@ -19,6 +19,7 @@ Local plugins are directory sources installed into one Paseo daemon. A plugin ca
 - global, workspace, and agent actions in the Command Center;
 - slash commands in the message composer;
 - transformed and daemon-pushed agent timeline rows;
+- actions in the footer of each completed assistant turn;
 - light and dark themes in Settings → Appearance;
 - schema-validated RPC handlers running beside the daemon;
 - normal Paseo operations through the TypeScript SDK;
@@ -1483,6 +1484,41 @@ const pill = client.addComposerPill({
 For pills that follow the agent directory, use an explicit [owned list subscription](/docs/sdk/events#follow-one-agents-status).
 The [local plugin example](https://github.com/getpaseo/paseo/blob/main/plugin-examples/local-plugin/client/main.tsx)
 replaces registrations on each snapshot and aborts the observation during entry cleanup, including pending bootstrap.
+
+## Turn actions
+
+`client.addTurnAction({ id, Component })` renders a component in the footer of every completed
+assistant turn, after the built-in copy and fork buttons. It returns a cleanup function. Turns
+that are still streaming show no turn actions.
+
+The component receives the usual host props plus `agentId` and `getContent()`. `getContent()`
+returns the turn's markdown, the same text the copy button copies. Call it when the user acts
+rather than during render, since a long turn is costly to collect.
+
+```tsx
+import { Pressable, Text } from "react-native";
+import type { PluginClientContext, PluginTurnActionProps } from "@getpaseo/plugin/client";
+
+function WordCount({ getContent, theme }: PluginTurnActionProps) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel="Count words"
+      onPress={() => console.log(getContent().split(/\s+/).length)}
+    >
+      <Text style={{ color: theme.colors.foregroundMuted }}>Count</Text>
+    </Pressable>
+  );
+}
+
+export default function contribute(client: PluginClientContext) {
+  return client.addTurnAction({ id: "word-count", Component: WordCount });
+}
+```
+
+Keep the component to one compact control sized like the copy button. A turn action that throws
+drops out of that footer and logs the error; the rest of the footer keeps working. Actions only
+appear on turns from hosts that install the plugin.
 
 ## Button descriptor
 
