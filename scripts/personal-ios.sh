@@ -68,6 +68,11 @@ case "${1:-}" in
       ')"
     [ -n "$DEVICE_ID" ] || { echo "No paired iPhone found. Connect it, unlock it, and trust this Mac." >&2; exit 1; }
     [ -d "$WORKSPACE" ] || (cd "$APP_DIR" && CI=1 APP_VARIANT=personal npx expo prebuild --platform ios --clean)
+    # Codegen output lives in ios/build/generated and comes from pod install, not xcodebuild.
+    [ -d "$APP_DIR/ios/build/generated" ] || (cd "$APP_DIR/ios" && APP_VARIANT=personal pod install)
+    # The JS bundle imports these workspace packages from their built output.
+    (cd "$ROOT" && npm run --silent build:client && npm run --silent build:plugin &&
+      npm run --silent build --workspace=@getpaseo/expo-two-way-audio) >/dev/null
     echo "Building for iPhone $DEVICE_ID with team $TEAM_ID…"
     (cd "$APP_DIR/ios" && APP_VARIANT=personal xcodebuild \
       -workspace "$WORKSPACE" -scheme "$SCHEME" -configuration Release \
