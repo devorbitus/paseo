@@ -507,9 +507,16 @@ scroll view or header. See the [author contract](../public-docs/plugins/referenc
 and `plugin-examples/settings` for the named UI components and persistence API.
 
 Settings storage is scoped to the runtime installation ID, never the source path or manifest ID.
-Its writer lives with the plugin subprocess, while its directory lives outside managed sources,
+Host-scoped writers live with the plugin subprocess, while its directory lives outside managed sources,
 so updates and reloads retain values. Settings-change notifications must not enter the catalog
 reload path: that path disposes the plugin and would destroy open drafts after every save.
+
+Device-scoped documents never reach the daemon. The app keeps them in AsyncStorage, keyed by
+installation ID and settings ID (`packages/app/src/plugins/settings/device-store.ts`), so every
+host that installs the plugin under the same ID sees the same values on that device. The store
+copies the host store's envelope, migration, and revision rules; keep the two in step. The client
+cannot observe an uninstall on a host it is not connected to, so removing an installation leaves
+its device documents behind, and a reinstall under that ID picks them up again.
 
 `server.registerSettings(definition)` returns a server-side handle. Use `read()` for the current
 `ready` or `invalid` state and `subscribe()` for successful saves, resets, and migrations. The

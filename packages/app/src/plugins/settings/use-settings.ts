@@ -1,11 +1,15 @@
 import type { SettingsState } from "@getpaseo/plugin/client";
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRpc } from "@getpaseo/plugin/client";
 import { type SettingsDefinition } from "@getpaseo/plugin";
 import { settingsRpc } from "@getpaseo/plugin";
 import { useReplicaQuery } from "@/data/query";
 import { z, type ZodType } from "zod";
+import { DeviceSettingsStore, deviceSettingsStorageKey } from "./device-store";
+
+const deviceSettingsStore = new DeviceSettingsStore(AsyncStorage);
 
 export const pluginSettingsKey = (id: string) => ["plugin-settings", id] as const;
 function message(error: unknown): string {
@@ -13,7 +17,87 @@ function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-export function useSettings<Schema extends ZodType>(
+/**
+ * The `useSettings` a plugin bundle receives. A definition's scope is fixed, so each call site
+ * always takes the same branch and the hook order stays stable across renders.
+ */
+export function createPluginUseSettings(installationId: string) {
+  return function useSettings<Schema extends ZodType>(
+    definition: SettingsDefinition<Schema>,
+  ): SettingsState<Schema> {
+    if (definition.scope === "device") {
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- scope is fixed per definition.
+      return useDeviceSettings(installationId, definition);
+    }
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- scope is fixed per definition.
+    return useHostSettings(definition);
+  };
+}
+
+function useDeviceSettings<Schema extends ZodType>(
+  installationId: string,
+  definition: SettingsDefinition<Schema>,
+): SettingsState<Schema> {
+  const key = deviceSettingsStorageKey(installationId, definition.id);
+  const subscribe = useCallback(
+    (listener: () => void) => deviceSettingsStore.subscribe(key, listener),
+    [key],
+  );
+  const getSnapshot = useCallback(() => deviceSettingsStore.getSnapshot(key), [key]);
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    void deviceSettingsStore.load(key, definition);
+  }, [key, definition]);
+
+  async function commit(write: () => ReturnType<DeviceSettingsStore["save"]>) {
+    setSaving(true);
+    try {
+      const result = await write();
+      if (result.status !== "saved") {
+        setSaveError(result.error);
+        return false;
+      }
+      setSaveError(null);
+      return true;
+    } catch (error) {
+      setSaveError(message(error));
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const actions = {
+    saving,
+    saveError,
+    save: (values: z.output<Schema>, revision: string) =>
+      commit(() => deviceSettingsStore.save(key, definition, values, revision)),
+    reset: async () => {
+      if (snapshot.status !== "ready" && snapshot.status !== "invalid") return false;
+      const { revision } = snapshot;
+      return commit(() => deviceSettingsStore.reset(key, definition, revision));
+    },
+    reload: async () => {
+      setSaveError(null);
+      await deviceSettingsStore.reload(key, definition);
+    },
+  };
+  if (snapshot.status !== "ready") return { ...actions, ...snapshot };
+  const parsed = definition.schema.safeParse(snapshot.values);
+  if (!parsed.success)
+    return {
+      ...actions,
+      status: "invalid",
+      revision: snapshot.revision,
+      error: parsed.error.message,
+    };
+  return { ...actions, status: "ready", revision: snapshot.revision, values: parsed.data };
+}
+
+function useHostSettings<Schema extends ZodType>(
   definition: SettingsDefinition<Schema>,
 ): SettingsState<Schema> {
   const rpc = useMemo(() => settingsRpc(definition.id), [definition.id]);

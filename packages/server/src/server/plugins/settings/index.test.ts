@@ -175,3 +175,11 @@ test("installation namespaces and definition IDs remain separate", async () => {
   expect(() => store.register(definition)).toThrow("Duplicate settings");
   expect(() => store.register({ ...definition, id: "../escape" })).toThrow("Invalid settings ID");
 });
+
+test("device-scoped definitions never register on the host", async () => {
+  const { directory } = await setup();
+  const store = new PluginSettingsStore(directory, () => {});
+  expect(() => store.register({ ...definition, id: "playback", scope: "device" })).toThrow(
+    "device-scoped",
+  );
+});

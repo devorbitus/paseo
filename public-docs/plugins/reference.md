@@ -1133,7 +1133,7 @@ export const preferences = defineSettings({
 });
 ```
 
-Register it in `index.server.ts` before returning cleanup. The returned handle lets server code
+Register a host-scoped document in `index.server.ts` before returning cleanup. The returned handle lets server code
 read the document and react to changes. A screen using its own data can remain client-only.
 
 ```ts
@@ -1150,15 +1150,19 @@ export default function contribute(server: PluginServerContext) {
 }
 ```
 
-| Definition field               | Contract                                                                                                                             |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`                           | Lowercase identifier matching `[a-z][a-z0-9_-]*`; unique within the installation.                                                    |
-| `scope`                        | Required `"host"`. All authorized clients of that host share the document. No per-user, device-local, or cross-host synchronization. |
-| `version`                      | Required positive integer describing the schema, independent of the write revision.                                                  |
-| `schema`                       | Zod schema for JSON values. Supply defaults so parsing `{}` produces a complete document.                                            |
-| `migrate(values, fromVersion)` | Optional synchronous or asynchronous conversion from an older stored version. Its output must pass the current schema.               |
+| Definition field               | Contract                                                                                                                                                                                                                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                           | Lowercase identifier matching `[a-z][a-z0-9_-]*`; unique within the installation.                                                                                                                                                                                                 |
+| `scope`                        | Required. `"host"`: all authorized clients of that host share one document on the daemon. `"device"`: each client device keeps its own document, shared across every host it connects to that installs the plugin under the same ID. No per-user or cross-device synchronization. |
+| `version`                      | Required positive integer describing the schema, independent of the write revision.                                                                                                                                                                                               |
+| `schema`                       | Zod schema for JSON values. Supply defaults so parsing `{}` produces a complete document.                                                                                                                                                                                         |
+| `migrate(values, fromVersion)` | Optional synchronous or asynchronous conversion from an older stored version. Its output must pass the current schema.                                                                                                                                                            |
 
-Call `useSettings(preferences)` in any contributed component. It returns a discriminated state:
+Use `scope: "device"` for preferences that belong to one device rather than the host, such as a
+voice that only exists on that device's OS. Don't register device-scoped documents on the server:
+`registerSettings` rejects them, and server code cannot read them. `migrate` runs on the device.
+
+Call `useSettings(preferences)` in any contributed component. Both scopes return the same state. It returns a discriminated state:
 
 | `status`  | Available data                                                           |
 | --------- | ------------------------------------------------------------------------ |
@@ -1196,7 +1200,11 @@ save, preserving both the draft and the newer saved values.
 
 Writes are atomic and validated on the host. Connected clients receive updates without reloading
 the plugin. Values survive daemon restart, plugin reload, disable, and updates. Removing an
-installation deletes its settings. Reinstalling that ID starts from defaults.
+installation deletes its host settings. Reinstalling that ID starts from defaults.
+
+Device-scoped writes are validated on the device and update every open component on it. They
+survive app restarts and plugin updates. Removing an installation leaves device documents on
+each device, so reinstalling under the same ID restores that device's values.
 
 A missing document uses schema defaults. Invalid data, failed migrations, and unsupported newer
 versions produce `invalid` without silently resetting the file. Successful migrations persist

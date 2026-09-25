@@ -4,10 +4,15 @@ import { defineRpc } from "./rpc.js";
 
 export interface SettingsDefinition<Schema extends ZodType = ZodType> {
   id: string;
-  scope: "host";
+  /**
+   * `host` stores one document on the daemon, shared by every client of that host.
+   * `device` stores one document on each client device, shared by every host that device
+   * connects to with the same installation ID. Device documents never reach the daemon.
+   */
+  scope: "host" | "device";
   version: number;
   schema: Schema;
-  /** Convert a previous stored version to the current schema. Runs on the host. */
+  /** Convert a previous stored version to the current schema. Runs where the document is stored. */
   migrate?: (values: unknown, fromVersion: number) => unknown | Promise<unknown>;
 }
 
@@ -15,7 +20,8 @@ export function defineSettings<Schema extends ZodType>(
   definition: SettingsDefinition<Schema>,
 ): SettingsDefinition<Schema> {
   if (!/^[a-z][a-z0-9_-]*$/.test(definition.id)) throw new Error("Invalid settings ID");
-  if (definition.scope !== "host") throw new Error("Only host-scoped settings are supported");
+  if (definition.scope !== "host" && definition.scope !== "device")
+    throw new Error("Settings scope must be host or device");
   if (!Number.isSafeInteger(definition.version) || definition.version < 1)
     throw new Error("Invalid settings version");
   return definition;

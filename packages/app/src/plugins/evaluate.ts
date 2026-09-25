@@ -1,7 +1,7 @@
 import type { createPluginHosts } from "./hosts";
 import { openExternalUrl } from "@/utils/open-external-url";
 import * as pluginUiRuntime from "./react-native/ui";
-import { useSettings } from "./settings/use-settings";
+import { createPluginUseSettings } from "./settings/use-settings";
 import * as pluginSharedRuntime from "@getpaseo/plugin";
 import * as pluginClientRuntime from "@getpaseo/plugin/client";
 import * as React from "react";
@@ -379,7 +379,7 @@ export function runPluginClientBundle(
     if (name === "@getpaseo/plugin/client")
       return {
         ...pluginClientRuntime,
-        useSettings,
+        useSettings: createPluginUseSettings(id),
         openExternalUrl,
         getPaseoClient: (serverId: string) => runtime.hosts.getPaseoClient(serverId),
         useHosts: () =>
