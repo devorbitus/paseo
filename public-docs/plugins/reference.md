@@ -136,6 +136,7 @@ Paseo provides these modules to client code:
 | `@getpaseo/plugin`                     | Shared data, `defineRpc`, `defineSettings`, `defineAttachmentSource`, `RpcInput`, and `RpcOutput` |
 | `@getpaseo/plugin/client/ui`           | Named, composable settings components                                                             |
 | `@getpaseo/plugin/client/react-native` | Paseo UI components and UI hooks                                                                  |
+| `@getpaseo/plugin/client/speech`       | Text-to-speech through the device's own voices                                                    |
 | `@getpaseo/plugin/client`              | Client contribution contexts, `usePaseo`, `useRpc`, `useSettings`, and data hooks                 |
 | `@tanstack/react-query`                | Request state and caching                                                                         |
 | `react`                                | Components and hooks                                                                              |
@@ -986,6 +987,46 @@ sessions. The row appears live, survives timeline refetches, and keeps only the 
 same plugin and `id`. If its renderer is missing, Paseo shows the existing unavailable row. Daemons
 reject `data` over the limit rather than truncating it. Daemons that support this operation
 advertise `server_info.features.pluginTimelineItems`.
+
+## Speech
+
+`@getpaseo/plugin/client/speech` reads text aloud with the device's own voices on iOS, Android,
+web, and desktop. Paseo owns the playback, so the same rules hold for every plugin:
+
+- One playback runs at a time. `speak` stops whatever was playing, including another plugin's.
+- Playback stops when voice mode or dictation opens the microphone, and when the mobile app moves
+  to the background.
+- `pause` works everywhere. Resuming restarts the sentence that was paused.
+- `setRate(rate)` takes 0.5–2. While playing, it restarts the current sentence at the new rate.
+
+```tsx
+import { useState } from "react";
+import { Pressable, Text } from "react-native";
+import { speech, useSpeechState } from "@getpaseo/plugin/client/speech";
+
+function ListenButton({ text }: { text: string }) {
+  const state = useSpeechState();
+  const [playbackId, setPlaybackId] = useState<string | null>(null);
+  const mine = state.status !== "idle" && state.playbackId === playbackId;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => {
+        if (!mine) setPlaybackId(speech.speak(text, { rate: 1.25 }));
+        else if (state.status === "playing") speech.pause();
+        else speech.resume();
+      }}
+    >
+      <Text>{!mine ? "Listen" : state.status === "playing" ? "Pause" : "Resume"}</Text>
+    </Pressable>
+  );
+}
+```
+
+Compare `state.playbackId` with the ID `speak` returned to tell whether your control owns the
+current playback. `getVoices()` lists this device's voices; store the chosen `id` in
+[device-scoped settings](#persisted-values), since voice IDs differ between devices. Pass plain
+prose: speech engines read markdown symbols and code aloud.
 
 ## Theme and layout
 

@@ -4,6 +4,7 @@ import type {
   AudioEngineCallbacks,
   AudioPlaybackSource,
 } from "@/voice/audio-engine-types";
+import { stopSpeechForCapture } from "@/plugins/speech";
 
 interface QueuedAudio {
   audio: AudioPlaybackSource;
@@ -278,6 +279,7 @@ export function createAudioEngine(
       if (refs.started) {
         return;
       }
+      stopSpeechForCapture();
 
       const missingNavigator =
         typeof navigator === "undefined" ||
