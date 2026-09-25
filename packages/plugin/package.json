@@ -38,6 +38,11 @@
       "source": "./src/client/host.ts",
       "default": "./dist/client/host.js"
     },
+    "./client/speech": {
+      "types": "./dist/client/speech.d.ts",
+      "source": "./src/client/speech.ts",
+      "default": "./dist/client/speech.js"
+    },
     "./client/ui": {
       "types": "./dist/client/ui.d.ts",
       "source": "./src/client/ui.ts",

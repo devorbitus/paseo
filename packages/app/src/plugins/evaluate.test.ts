@@ -523,6 +523,9 @@ describe("evaluatePluginClientBundle", () => {
       const client = require("@getpaseo/plugin/client");
       const { ExternalLink } = require("@getpaseo/plugin/client/ui");
       if (typeof ExternalLink !== "function") throw new Error("ExternalLink");
+      const { speech, useSpeechState } = require("@getpaseo/plugin/client/speech");
+      if (typeof speech.speak !== "function" || typeof useSpeechState !== "function") throw new Error("speech");
+      if (speech.getState().status !== "idle") throw new Error("speech state");
       for (const name of ["usePaseo", "useRpc", "useSettings", "useAgent", "useWorkspace", "openExternalUrl"]) {
         if (name in shared || typeof client[name] !== "function") throw new Error(name);
       }

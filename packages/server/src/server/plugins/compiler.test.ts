@@ -144,6 +144,7 @@ describe("plugin runtime entries", () => {
     "react-native",
     "@getpaseo/plugin/client",
     "@getpaseo/plugin/client/ui",
+    "@getpaseo/plugin/client/speech",
   ])("rejects %s from server code", async (specifier) => {
     const entries = await createSplitPlugin();
     await writeFile(

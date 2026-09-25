@@ -2,6 +2,7 @@
 export const PLUGIN_CLIENT_ONLY_SDK_SPECIFIERS = [
   "@getpaseo/plugin/client",
   "@getpaseo/plugin/client/ui",
+  "@getpaseo/plugin/client/speech",
   "@getpaseo/plugin/client/react-native",
 ] as const;
 

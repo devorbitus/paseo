@@ -1,6 +1,7 @@
 import type { createPluginHosts } from "./hosts";
 import { openExternalUrl } from "@/utils/open-external-url";
 import * as pluginUiRuntime from "./react-native/ui";
+import { speech, useSpeechState } from "./speech";
 import { useSettings } from "./settings/use-settings";
 import * as pluginSharedRuntime from "@getpaseo/plugin";
 import * as pluginClientRuntime from "@getpaseo/plugin/client";
@@ -372,6 +373,7 @@ export function runPluginClientBundle(
   };
   const runtimeRequire = (name: string): unknown => {
     if (name === "@getpaseo/plugin/client/ui") return pluginUiRuntime;
+    if (name === "@getpaseo/plugin/client/speech") return { speech, useSpeechState };
     if (name === "react") return React;
     if (name === "react/jsx-runtime") return ReactJsxRuntime;
     if (name === "react-native") return ReactNative;

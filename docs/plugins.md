@@ -515,6 +515,18 @@ reload path: that path disposes the plugin and would destroy open drafts after e
 `ready` or `invalid` state and `subscribe()` for successful saves, resets, and migrations. The
 subscription cleanup belongs in the plugin's contribution cleanup when it outlives the entry.
 
+## Speech
+
+`@getpaseo/plugin/client/speech` is the app's playback in `packages/app/src/plugins/speech/`, not
+a pass-through to `expo-speech`. The app has to own it: one-at-a-time playback across plugins and
+stopping before the microphone opens depend on app state no plugin can see. The capture paths
+call `stopSpeechForCapture()` so voice mode and dictation never record the app's own voice.
+
+Pause stops the engine and resume replays the current sentence. `expo-speech` cannot pause on
+Android, and restarting a sentence is also how rate changes take effect, so one mechanism covers
+both. Text is split into sentences of at most 220 characters, which keeps those restarts short
+and avoids Chromium dropping long utterances partway through.
+
 ## Contribute a theme
 
 `addTheme` takes a small light or dark palette and a display name. Paseo expands it through the

@@ -6,6 +6,7 @@ import type {
   DictationAudioSource,
   DictationAudioSourceConfig,
 } from "./use-dictation-audio-source.types";
+import { stopSpeechForCapture } from "@/plugins/speech";
 
 const getAudioContextCtor = (): typeof AudioContext | null => {
   if (typeof window === "undefined") {
@@ -234,6 +235,7 @@ export function useDictationAudioSource(config: DictationAudioSourceConfig): Dic
   }, []);
 
   const start = useCallback(async () => {
+    stopSpeechForCapture();
     const missingNavigator =
       typeof navigator === "undefined" ||
       !navigator.mediaDevices ||

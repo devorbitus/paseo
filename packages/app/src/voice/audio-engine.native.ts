@@ -3,6 +3,7 @@ import type {
   AudioEngineCallbacks,
   AudioPlaybackSource,
 } from "@/voice/audio-engine-types";
+import { stopSpeechForCapture } from "@/plugins/speech";
 
 interface QueuedAudio {
   audio: AudioPlaybackSource;
@@ -274,6 +275,7 @@ export function createAudioEngine(
       if (refs.captureActive) {
         return;
       }
+      stopSpeechForCapture();
 
       try {
         await ensureMicrophonePermission();
