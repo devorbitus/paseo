@@ -51,6 +51,14 @@ All commands run in `~/code/paseo-fork`.
 "<release> approved by operator"`, then end your turn. Ground Control messages you with the
    outcome; relay it to the operator in one line.
 
+## iOS app
+
+After step 5 of every run, `node scripts/fork/ios-release.mjs`. It builds and uploads the personal
+iOS app to TestFlight only when app code changed since the last upload, and needs no approval:
+TestFlight just offers the update, nothing restarts. It takes 15–30 minutes of Mac CPU. Mention the
+uploaded build number in your next message to the operator. If it fails for missing setup, tell the
+operator to run `scripts/fork/ios-setup-wizard.sh` at the Mac.
+
 ## Failure handling
 
 - A rollback means the release was unhealthy on the real daemon. Read
