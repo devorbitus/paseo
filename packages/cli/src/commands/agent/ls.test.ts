@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildAgentLsFetchOptions } from "./ls.js";
+import { buildAgentLsFetchOptions, toListItem } from "./ls.js";
 
 describe("buildAgentLsFetchOptions", () => {
   it("fetches active agents by default", () => {
@@ -57,5 +57,23 @@ describe("buildAgentLsFetchOptions", () => {
         thinkingOptionId: "medium",
       },
     });
+  });
+});
+
+describe("toListItem", () => {
+  const snapshot = {
+    id: "0123456789abcdef",
+    provider: "claude",
+    cwd: "/tmp/project",
+    model: null,
+    title: "Busy agent",
+    status: "idle",
+    createdAt: new Date().toISOString(),
+    effectiveThinkingOptionId: null,
+  } as unknown as Parameters<typeof toListItem>[0];
+
+  it("reports background work still running on an idle agent", () => {
+    expect(toListItem({ ...snapshot, backgroundWork: true }).backgroundWork).toBe(true);
+    expect(toListItem(snapshot).backgroundWork).toBe(false);
   });
 });

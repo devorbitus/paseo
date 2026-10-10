@@ -678,6 +678,8 @@ export interface AgentSession {
   getRuntimeInfo(): Promise<AgentRuntimeInfo>;
   getAvailableModes(): Promise<AgentMode[]>;
   getCurrentMode(): Promise<string | null>;
+  /** Whether the provider still runs work (background shells, monitors, subagents) between turns. */
+  hasBackgroundWork?(): boolean;
   setMode(modeId: string): Promise<void | AgentProviderNotice>;
   getPendingPermissions(): AgentPermissionRequest[];
   respondToPermission(

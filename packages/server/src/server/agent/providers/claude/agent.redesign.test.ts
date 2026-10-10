@@ -1368,6 +1368,46 @@ test("a main-session frame opens no turn until Claude starts one", async () => {
   await session.close();
 });
 
+test("reports background work while Claude has live background tasks", async () => {
+  sdkQueryFactory.mockImplementation(() => createPendingQueryMock());
+  const session = await createSession();
+  const internal: SessionStateInternals = asInternals(session);
+  const queryMock = createPendingQueryMock();
+
+  expect(session.hasBackgroundWork?.()).toBe(false);
+  // In streaming mode Claude goes idle right after a turn's result even with a background shell
+  // still running; only background_tasks_changed tracks it.
+  await internal.routeSdkMessageFromPump(claudeTurnInit(), queryMock);
+  await internal.routeSdkMessageFromPump(
+    backgroundTasks([{ task_id: "b1", task_type: "local_bash" }]),
+    queryMock,
+  );
+  await internal.routeSdkMessageFromPump(successResult(), queryMock);
+  await internal.routeSdkMessageFromPump(sessionState("idle"), queryMock);
+  expect(session.hasBackgroundWork?.()).toBe(true);
+
+  await internal.routeSdkMessageFromPump(backgroundTasks([]), queryMock);
+  expect(session.hasBackgroundWork?.()).toBe(false);
+
+  await internal.routeSdkMessageFromPump(
+    backgroundTasks([{ task_id: "a1", task_type: "local_agent" }]),
+    queryMock,
+  );
+  await session.close();
+  // Background work lives in the Claude process, so a closed session has none.
+  expect(session.hasBackgroundWork?.()).toBe(false);
+});
+
+function backgroundTasks(tasks: Array<{ task_id: string; task_type: string }>) {
+  return {
+    type: "system",
+    subtype: "background_tasks_changed",
+    tasks: tasks.map((task) => ({ ...task, description: task.task_id })),
+    uuid: `tasks-${tasks.length}`,
+    session_id: "sess-1",
+  };
+}
+
 test("a background subagent's frames never open a turn while the main session is idle", async () => {
   sdkQueryFactory.mockImplementation(() => createPendingQueryMock());
   const session = await createSession();

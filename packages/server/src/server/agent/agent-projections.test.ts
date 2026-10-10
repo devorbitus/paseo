@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { AGENT_LIFECYCLE_STATUSES } from "./agent-manager.js";
 import {
   buildStoredAgentPayload,
+  toAgentListItemPayload,
   toAgentPayload,
   toRecentProviderSessionDescriptorPayload,
   toStoredAgentRecord,
@@ -275,6 +276,20 @@ describe("toAgentPayload", () => {
     expect(agent.capabilities.supportsStreaming).toBe(true);
     payload.pendingPermissions[0].title = "Mutated title";
     expect(permissionA.title).toBe("Run command");
+  });
+
+  it("reports background work the provider is still running between turns", () => {
+    const busy = createManagedAgent({
+      session: { hasBackgroundWork: () => true } as unknown as AgentSession,
+    });
+    const quiet = createManagedAgent({
+      session: { hasBackgroundWork: () => false } as unknown as AgentSession,
+    });
+
+    expect(toAgentPayload(busy).backgroundWork).toBe(true);
+    expect(toAgentListItemPayload(toAgentPayload(busy)).backgroundWork).toBe(true);
+    expect(toAgentPayload(quiet)).not.toHaveProperty("backgroundWork");
+    expect(toAgentPayload(createManagedAgent())).not.toHaveProperty("backgroundWork");
   });
 
   it("omits usage when any numeric usage field is NaN", () => {

@@ -150,6 +150,11 @@ export function toAgentPayload(
     payload.lastError = agent.lastError;
   }
 
+  // Read live: providers report it only on request, and it changes between turns without an event.
+  if (agent.session?.hasBackgroundWork?.()) {
+    payload.backgroundWork = true;
+  }
+
   // Handle attention state
   payload.requiresAttention = agent.attention.requiresAttention;
   if (agent.attention.requiresAttention) {
@@ -272,6 +277,7 @@ export function toAgentListItemPayload(agent: AgentSnapshotPayload): AgentListIt
     attentionTimestamp: agent.attentionTimestamp ?? null,
     labels: agent.labels,
     ...(agent.providerUnavailable ? { providerUnavailable: true } : {}),
+    ...(agent.backgroundWork ? { backgroundWork: true } : {}),
   };
 }
 
