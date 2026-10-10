@@ -7,6 +7,7 @@
 // then runs two real scheduled agents through it:
 //   A. no mode: the agent must write a file without any permission prompt, and succeed.
 //   B. Always Ask: the run must fail naming the tool it waited on, with no prompt left open.
+//   C. An idle agent with a background shell must be listed with backgroundWork: true.
 // Never touches the operator's daemon on port 6767.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -122,6 +123,23 @@ try {
   const proof = join(repoA, "smoke-proof.txt");
   const pending = cli(["permit", "ls"]).trim().split("\n").slice(1).filter(Boolean);
 
+  // C. An agent that ends its turn with a background shell still running must be reported as
+  // having background work, or a deploy would kill that shell without waiting.
+  const repoC = makeRepo("background");
+  const runC = cli([
+    "run",
+    "--provider",
+    model,
+    "--mode",
+    "bypassPermissions",
+    "--cwd",
+    repoC,
+    "--json",
+    "Use the Bash tool with run_in_background set to true to run: python3 -c 'import time; time.sleep(90)'. Do not wait for it. Reply with exactly: started",
+  ]);
+  const agentC = JSON.parse(runC.slice(runC.indexOf("{"))).agentId;
+  const listedC = JSON.parse(cli(["ls", "-g", "--json"])).find((agent) => agent.id === agentC);
+
   checks.push(
     {
       check: "A (no mode) succeeded",
@@ -138,6 +156,11 @@ try {
       detail: runB.error,
     },
     { check: "B left no prompt open", ok: pending.length === 0, detail: pending.join("; ") },
+    {
+      check: "C (idle with a background shell) reports background work",
+      ok: listedC?.status === "idle" && listedC?.backgroundWork === true,
+      detail: JSON.stringify(listedC ?? null),
+    },
   );
   passed = checks.every((entry) => entry.ok);
 } catch (error) {

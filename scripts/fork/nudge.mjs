@@ -33,7 +33,9 @@ for (const agent of record.interrupted) {
       "send",
       "--no-wait",
       agent.id,
-      `The Paseo harness restarted for a deploy (now running ${runningRelease}), which interrupted your turn. Continue where you left off.`,
+      agent.work === "background"
+        ? `The Paseo harness restarted for a deploy (now running ${runningRelease}), which stopped your background work (shells, monitors or subagents). Restart whatever you still need and continue.`
+        : `The Paseo harness restarted for a deploy (now running ${runningRelease}), which interrupted your turn. Continue where you left off.`,
     ]);
     nudged.push(agent.id);
   } catch (error) {
