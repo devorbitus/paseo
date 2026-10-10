@@ -28,3 +28,15 @@ Rules that the scripts don't enforce:
 - Releases are never edited after staging. Fix the commit and stage a new release.
 
 The release agent follows the `paseo-fork-release` skill in `scripts/fork/skill/SKILL.md`.
+
+## Personal iOS app
+
+The fork's iOS app ("Paseo (devorbitus)", `com.devorbitus.paseo`) installs beside the App Store
+app and ships to TestFlight. One-time account setup, run at the Mac:
+
+```bash
+scripts/fork/ios-setup-wizard.sh
+```
+
+It saves non-secret values to `~/.paseo-fork/ios.env` and the App Store Connect API key and Expo
+token to the login Keychain.
