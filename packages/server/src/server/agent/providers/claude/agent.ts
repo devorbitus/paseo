@@ -399,6 +399,7 @@ const DEFAULT_MODES: AgentMode[] = [
     id: "bypassPermissions",
     label: "Bypass",
     description: "Skip all permission prompts (use with caution)",
+    isUnattended: true,
   },
 ];
 
@@ -2392,7 +2393,11 @@ class ClaudeAgentSession implements AgentSession {
       );
     }
 
-    this.currentMode = isPermissionMode(config.modeId) ? config.modeId : "default";
+    // No requested mode means the provider default the app advertises, not Always Ask:
+    // an agent nobody is watching would otherwise stall on its first tool call.
+    this.currentMode = isPermissionMode(config.modeId)
+      ? config.modeId
+      : claudeModeCatalog(this.harnessEnvironment).defaultModeId;
     if (this.currentMode !== "plan") {
       this.planResumeMode = this.currentMode;
     }
