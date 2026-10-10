@@ -47,6 +47,10 @@ const patchedPackages = [
     cwd: "packages/app",
   },
   {
+    nodeModulesPath: "node_modules/react-native-uitextview",
+    patchPrefix: "react-native-uitextview+",
+  },
+  {
     nodeModulesPath: "node_modules/@mattermost/react-native-paste-input",
     patchPrefix: "@mattermost+react-native-paste-input+",
   },

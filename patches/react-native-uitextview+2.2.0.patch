@@ -1,0 +1,94 @@
+diff --git a/node_modules/react-native-uitextview/ios/RNUITextView.mm b/node_modules/react-native-uitextview/ios/RNUITextView.mm
+--- a/node_modules/react-native-uitextview/ios/RNUITextView.mm
++++ b/node_modules/react-native-uitextview/ios/RNUITextView.mm
+@@ -127,6 +127,11 @@
+   const BOOL frameChanged = !CGRectEqualToRect(_textView.frame, _view.frame);
+   if (!textChanged && !frameChanged) {
+     return;
++  }
++  // Size the text view before handing it new text, so a recycled view (which
++  // arrives with a zero frame) lays the text out against its real width.
++  if (frameChanged) {
++    _textView.frame = _view.frame;
+   }
+   if (textChanged) {
+     // Reassigning attributedText clears any active selection. Save it and
+@@ -141,9 +146,6 @@
+     }
+     _suppressSelectionChange = NO;
+   }
+-  if (frameChanged) {
+-    _textView.frame = _view.frame;
+-  }
+ 
+   __block std::vector<std::string> lines;
+   const int maxLines = props.numberOfLines;
+diff --git a/node_modules/react-native-uitextview/ios/RNUITextViewShadowNode.cpp b/node_modules/react-native-uitextview/ios/RNUITextViewShadowNode.cpp
+--- a/node_modules/react-native-uitextview/ios/RNUITextViewShadowNode.cpp
++++ b/node_modules/react-native-uitextview/ios/RNUITextViewShadowNode.cpp
+@@ -28,6 +28,23 @@
+       paragraphAttributes.ellipsizeMode = EllipsizeMode::Clip;
+     }
+ 
++    const auto baseAttributedString = getAttributedString(layoutContext);
++    
++    TextLayoutContext textLayoutContext{};
++    textLayoutContext.pointScaleFactor = layoutContext.pointScaleFactor;
++    const auto textLayoutManager = std::make_shared<const TextLayoutManager>(getContextContainer());
++        
++    return textLayoutManager->measure(
++      AttributedStringBox{baseAttributedString},
++      paragraphAttributes,
++      textLayoutContext,
++      layoutConstraints
++    ).size;
++}
++
++AttributedString RNUITextViewShadowNode::getAttributedString(
++  const LayoutContext& layoutContext) const {
++    const auto &baseProps = getConcreteProps();
+     auto baseTextAttributes = TextAttributes::defaultTextAttributes();
+     baseTextAttributes.backgroundColor = baseProps.backgroundColor;
+     baseTextAttributes.allowFontScaling = baseProps.allowFontScaling;
+@@ -119,24 +136,17 @@
+       }
+     }
+     
+-    _attributedString = baseAttributedString;
+-    
+-    TextLayoutContext textLayoutContext{};
+-    textLayoutContext.pointScaleFactor = layoutContext.pointScaleFactor;
+-    const auto textLayoutManager = std::make_shared<const TextLayoutManager>(getContextContainer());
+-        
+-    return textLayoutManager->measure(
+-      AttributedStringBox{baseAttributedString},
+-      paragraphAttributes,
+-      textLayoutContext,
+-      layoutConstraints
+-    ).size;
++    return baseAttributedString;
+ }
+ 
++// Build the string here instead of reusing the one measureContent saw. Yoga
++// skips measureContent when its cached measurement still applies, so a clone
++// that only moved (e.g. a sibling above it grew) reaches layout() without ever
++// being measured, and its state would be published with an empty string.
+ void RNUITextViewShadowNode::layout(LayoutContext layoutContext) {
+   ensureUnsealed();
+   setStateData(RNUITextViewStateReal{
+-    _attributedString
++    getAttributedString(layoutContext)
+   });
+ }
+ }
+diff --git a/node_modules/react-native-uitextview/ios/RNUITextViewShadowNode.h b/node_modules/react-native-uitextview/ios/RNUITextViewShadowNode.h
+--- a/node_modules/react-native-uitextview/ios/RNUITextViewShadowNode.h
++++ b/node_modules/react-native-uitextview/ios/RNUITextViewShadowNode.h
+@@ -43,6 +43,6 @@
+       const LayoutConstraints& layoutConstraints) const override;
+ 
+ private:
+-  mutable AttributedString _attributedString;
++  AttributedString getAttributedString(const LayoutContext& layoutContext) const;
+ };
+ } // namespace facebook::React
