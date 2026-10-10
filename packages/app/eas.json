@@ -34,6 +34,12 @@
         "buildType": "apk",
         "gradleCommand": ":app:assembleRelease -x lint -x lintVitalAnalyzeRelease -x lintVitalRelease -x generateReleaseLintModel -x generateReleaseLintVitalModel"
       }
+    },
+    "personal": {
+      "env": {
+        "APP_VARIANT": "personal"
+      },
+      "distribution": "store"
     }
   },
   "submit": {
@@ -45,6 +51,9 @@
         "track": "production",
         "releaseStatus": "completed"
       }
+    },
+    "personal": {
+      "ios": {}
     }
   }
 }
