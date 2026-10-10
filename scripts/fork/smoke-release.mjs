@@ -85,7 +85,8 @@ async function finishedRun(scheduleId) {
   );
 }
 
-const daemon = spawnDetached(process.execPath, [cliEntry, "daemon", "run", "--home", home], {
+// Same launcher Ground Control uses, so a missing login-shell environment fails here first.
+const daemon = spawnDetached("bash", [join(releaseDir, "scripts", "fork", "run-daemon.sh"), home], {
   cwd: releaseDir,
   env: { ...process.env, PASEO_LISTEN: host, PASEO_RELAY_ENABLED: "false" },
   stdio: ["ignore", "ignore", "ignore"],
