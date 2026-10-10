@@ -3,7 +3,7 @@
 #
 #   scripts/personal-ios.sh daemon           start the fork dev daemon (127.0.0.1:6768)
 #   scripts/personal-ios.sh pair             enable its relay and print the pairing QR code
-#   scripts/personal-ios.sh install TEAM_ID  build Release for the connected iPhone and install it
+#   scripts/personal-ios.sh install [TEAM_ID] build Release for the connected iPhone and install it
 #   scripts/personal-ios.sh relay-off        turn the dev daemon's relay back off
 #
 # The main Paseo daemon on 6767 (~/.paseo) is never touched.
@@ -56,7 +56,11 @@ case "${1:-}" in
     echo "Dev daemon relay disabled."
     ;;
   install)
-    TEAM_ID="${2:?Usage: $0 install TEAM_ID  (Xcode → Settings → Accounts → your Personal Team)}"
+    # The personal variant signs with the operator's team and Expo project (scripts/fork/README.md).
+    [ -f "$HOME/.paseo-fork/ios.env" ] && { set -a; . "$HOME/.paseo-fork/ios.env"; set +a; }
+    export PASEO_PERSONAL_EXPO_OWNER="${EXPO_OWNER:?Run scripts/fork/ios-setup-wizard.sh first}"
+    export PASEO_PERSONAL_EAS_PROJECT_ID="${EAS_PROJECT_ID:?Run scripts/fork/ios-release.mjs once to create the EAS project}"
+    TEAM_ID="${2:-${APPLE_TEAM_ID:?Usage: $0 install [TEAM_ID]  (or run scripts/fork/ios-setup-wizard.sh)}}"
     DEVICE_ID="$(xcrun devicectl list devices --json-output /dev/stdout 2>/dev/null |
       node -e '
         let raw = ""; process.stdin.on("data", (c) => (raw += c)).on("end", () => {

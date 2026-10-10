@@ -11,9 +11,25 @@ const { getNativeReleaseVersion } = require("./native-release-version");
 const appVariant = process.env.APP_VARIANT ?? "production";
 const isFdroidBuild = process.env.PASEO_FDROID_BUILD === "1";
 const isProfileBuild = process.env.PASEO_PROFILE_BUILD === "1";
-// devorbitus fork only: a sideloaded build under a personal Apple team. Free teams cannot sign
-// the push entitlement, so this build drops notifications.
+// devorbitus fork only: the operator's own TestFlight app, beside the App Store one. It signs and
+// pushes through the operator's Apple team and Expo project, read from the environment that
+// scripts/fork/ios-release.mjs sets (see scripts/fork/README.md).
 const isPersonalBuild = appVariant === "personal";
+const personal = isPersonalBuild
+  ? {
+      owner: requireEnv("PASEO_PERSONAL_EXPO_OWNER"),
+      // Unset only while `eas init` creates the project (scripts/fork/ios-release.mjs).
+      projectId: process.env.PASEO_PERSONAL_EAS_PROJECT_ID || undefined,
+      // TestFlight rejects a reused build number, and the stock number is fixed per version.
+      iosBuildNumber: process.env.PASEO_PERSONAL_IOS_BUILD_NUMBER,
+    }
+  : null;
+
+function requireEnv(name) {
+  const value = process.env[name];
+  if (!value) throw new Error(`${name} is required for APP_VARIANT=personal`);
+  return value;
+}
 
 const buildProfile = isFdroidBuild
   ? {
@@ -44,17 +60,15 @@ const buildProfile = isFdroidBuild
         ],
       ],
       fdroidPlugins: [],
-      notificationPlugins: isPersonalBuild
-        ? []
-        : [
-            [
-              "expo-notifications",
-              {
-                icon: "./assets/images/notification-icon.png",
-                color: "#20744A",
-              },
-            ],
-          ],
+      notificationPlugins: [
+        [
+          "expo-notifications",
+          {
+            icon: "./assets/images/notification-icon.png",
+            color: "#20744A",
+          },
+        ],
+      ],
     };
 
 function resolveSecretFile(params) {
@@ -125,7 +139,7 @@ export default {
       ...(variant.googleServiceInfoPlist
         ? { googleServicesFile: variant.googleServiceInfoPlist }
         : {}),
-      buildNumber: nativeReleaseVersion.iosBuildNumber,
+      buildNumber: personal?.iosBuildNumber ?? nativeReleaseVersion.iosBuildNumber,
     },
     android: {
       adaptiveIcon: {
@@ -201,9 +215,9 @@ export default {
       profileBuild: isProfileBuild,
       router: {},
       eas: {
-        projectId: "0e7f65ce-0367-46c8-a238-2b65963d235a",
+        projectId: personal ? personal.projectId : "0e7f65ce-0367-46c8-a238-2b65963d235a",
       },
     },
-    owner: "getpaseo",
+    owner: personal?.owner ?? "getpaseo",
   },
 };
