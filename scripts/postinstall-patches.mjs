@@ -31,6 +31,10 @@ const patchedPackages = [
     patchPrefix: "react-native-svg+",
   },
   {
+    nodeModulesPath: "node_modules/react-native-uitextview",
+    patchPrefix: "react-native-uitextview+",
+  },
+  {
     nodeModulesPath: "node_modules/@mattermost/react-native-paste-input",
     patchPrefix: "@mattermost+react-native-paste-input+",
   },
