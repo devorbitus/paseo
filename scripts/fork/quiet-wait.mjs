@@ -15,8 +15,18 @@ const requester = (process.env.GC_DEPLOY_REQUESTED_BY ?? "").replace(/^agent:/, 
 const timeoutMs = Number(process.env.PASEO_FORK_QUIET_TIMEOUT_SECONDS ?? 900) * 1000;
 const busyStatuses = new Set(["running", "initializing"]);
 
+function listAgents() {
+  try {
+    return cliJson(["ls", "-g"]);
+  } catch (error) {
+    // A stopped daemon (first deploy, or one that already crashed) has no turns to wait for.
+    if (String(error.stderr ?? "").includes("DAEMON_NOT_RUNNING")) return [];
+    throw error;
+  }
+}
+
 function busyAgents() {
-  const agents = cliJson(["ls", "-g"]);
+  const agents = listAgents();
   return agents
     .filter((agent) => busyStatuses.has(agent.status) && agent.id !== requester)
     .map((agent) => ({ id: agent.id, name: agent.name }));

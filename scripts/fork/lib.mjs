@@ -24,10 +24,15 @@ export function run(command, args, options = {}) {
   execFileSync(command, args, { cwd: options.cwd ?? repoRoot, stdio: "inherit", env: options.env });
 }
 
-// The CLI that talks to the operator's main daemon (default home, port 6767).
+// The CLI that talks to the operator's main daemon (default home, port 6767). Rehearsals point
+// it at a throwaway daemon with PASEO_FORK_DAEMON_HOME.
+const daemonHomeArgs = process.env.PASEO_FORK_DAEMON_HOME
+  ? ["--home", process.env.PASEO_FORK_DAEMON_HOME]
+  : [];
+
 export function cli(args, options = {}) {
   const entry = join(options.cliRoot ?? repoRoot, "packages", "cli", "dist", "index.js");
-  return execFileSync(process.execPath, [entry, ...args], {
+  return execFileSync(process.execPath, [entry, ...args, ...daemonHomeArgs], {
     encoding: "utf8",
     env: { ...process.env, ...options.env },
   });

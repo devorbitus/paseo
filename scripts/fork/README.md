@@ -4,14 +4,15 @@
 commits, one per change. These scripts keep it current and get it onto the operator's daemon.
 Not for upstream.
 
-| Step                                                           | Script                         | Who runs it                          |
-| -------------------------------------------------------------- | ------------------------------ | ------------------------------------ |
-| Rebase the patch stack onto the newest stable tag              | `sync-upstream.mjs`            | release agent                        |
-| Build a commit into `~/.paseo-fork/releases/<tag>-fork.<sha>`  | `stage-release.mjs`            | release agent                        |
-| Run the build as a throwaway daemon with real scheduled agents | `smoke-release.mjs <release>`  | release agent                        |
-| Submit the deploy after the operator approves it in chat       | `request-deploy.mjs <release>` | release agent                        |
-| Hold the restart until no agent is mid-turn (15 min cap)       | `quiet-wait.mjs`               | Ground Control `pre_deploy_command`  |
-| Tell interrupted agents to continue; report to the requester   | `nudge.mjs`                    | Ground Control `post_deploy_command` |
+| Step                                                                 | Script                         | Who runs it                          |
+| -------------------------------------------------------------------- | ------------------------------ | ------------------------------------ |
+| Rebase the patch stack onto the newest stable tag                    | `sync-upstream.mjs`            | release agent                        |
+| Build a commit into `~/.paseo-fork/releases/<tag>-fork.<sha>`        | `stage-release.mjs`            | release agent                        |
+| Run the build as a throwaway daemon with real scheduled agents       | `smoke-release.mjs <release>`  | release agent                        |
+| Submit the deploy after the operator approves it in chat             | `request-deploy.mjs <release>` | release agent                        |
+| Hold the restart until no agent is mid-turn (15 min cap)             | `quiet-wait.mjs`               | Ground Control `pre_deploy_command`  |
+| Tell interrupted agents to continue; report to the requester         | `nudge.mjs`                    | Ground Control `post_deploy_command` |
+| Run the release's daemon with the operator's login-shell environment | `run-daemon.sh <home>`         | Ground Control `start_command`       |
 
 Ground Control's `paseo-daemon` service runs `~/.paseo-fork/current` against `~/.paseo` on
 port 6767. Deploying repoints `current` and restarts; an unhealthy release is rolled back to
