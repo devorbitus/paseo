@@ -463,6 +463,7 @@ export function wrapSessionProvider(provider: AgentProvider, inner: AgentSession
     getRuntimeInfo: async () => mapRuntimeInfo(provider, await inner.getRuntimeInfo()),
     getAvailableModes: () => inner.getAvailableModes(),
     getCurrentMode: () => inner.getCurrentMode(),
+    hasBackgroundWork: inner.hasBackgroundWork?.bind(inner),
     setMode: (modeId) => inner.setMode(modeId),
     getPendingPermissions: () => inner.getPendingPermissions(),
     respondToPermission: (requestId, response) => inner.respondToPermission(requestId, response),

@@ -2354,6 +2354,9 @@ class ClaudeAgentSession implements AgentSession {
   private pendingFreshSessionId: string | null = null;
   private recentStderr = "";
   private closed = false;
+  // Live background shells, monitors and subagents, from Claude's background_tasks_changed level
+  // signal. Per process: a fresh Claude process starts with none.
+  private liveBackgroundTaskCount = 0;
 
   constructor(config: ClaudeAgentConfig, options: ClaudeAgentSessionOptions) {
     this.config = config;
@@ -2657,6 +2660,10 @@ class ClaudeAgentSession implements AgentSession {
 
   async getAvailableModes(): Promise<AgentMode[]> {
     return this.availableModes;
+  }
+
+  hasBackgroundWork(): boolean {
+    return !this.closed && this.liveBackgroundTaskCount > 0;
   }
 
   async getCurrentMode(): Promise<string | null> {
@@ -3428,8 +3435,9 @@ class ClaudeAgentSession implements AgentSession {
     const options = await this.buildOptions(launchMode);
     this.logger.debug({ options: summarizeClaudeOptionsForLog(options) }, "claude query");
     this.input = input;
-    // A fresh Claude process has no turn of its own in flight.
+    // A fresh Claude process has no turn of its own in flight, and no background work.
     this.mainTurnInFlight = false;
+    this.liveBackgroundTaskCount = 0;
     this.query = claudeQuery(
       { prompt: input.iterable, options },
       {
@@ -4014,6 +4022,8 @@ class ClaudeAgentSession implements AgentSession {
   }
 
   private failRunningRuntimeTasks(): void {
+    // Background work lives in the Claude process; when it goes, so does the work.
+    this.liveBackgroundTaskCount = 0;
     this.dispatchEvents(
       foldSubagentObservations(this.taskProtocolSource.failRunningTasks()).map(
         (event): AgentStreamEvent => ({ type: "provider_subagent", provider: "claude", event }),
@@ -4178,6 +4188,24 @@ class ClaudeAgentSession implements AgentSession {
     return true;
   }
 
+  /** Claude's state bookkeeping frames, which never reach the timeline. */
+  private consumeStateFrame(message: SDKMessage): boolean {
+    return this.consumeBackgroundTasksChange(message) || this.consumeSessionStateChange(message);
+  }
+
+  /**
+   * The full set of live background tasks, replaced on every change. Session state is no substitute:
+   * in streaming mode Claude reports "idle" right after a turn's result even while a background
+   * shell keeps running. Bookkeeping only; never reaches the timeline.
+   */
+  private consumeBackgroundTasksChange(message: SDKMessage): boolean {
+    if (message.type !== "system" || message.subtype !== "background_tasks_changed") {
+      return false;
+    }
+    this.liveBackgroundTaskCount = message.tasks.length;
+    return true;
+  }
+
   /** Tracks mainTurnInFlight from Claude's own turn brackets (isClaudeTurnInit). */
   private observeMainTurnBracket(message: SDKMessage): void {
     if (message.type === "result") {
@@ -4206,7 +4234,7 @@ class ClaudeAgentSession implements AgentSession {
   }
 
   private async routeSdkMessageFromPump(message: SDKMessage): Promise<void> {
-    if (this.consumeSessionStateChange(message)) {
+    if (this.consumeStateFrame(message)) {
       return;
     }
     this.observeMainTurnBracket(message);

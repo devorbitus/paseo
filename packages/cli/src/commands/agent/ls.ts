@@ -35,6 +35,8 @@ export interface AgentListItem {
   status: string;
   cwd: string;
   created: string;
+  /** Provider work (background shells, monitors, subagents) still running between turns. */
+  backgroundWork: boolean;
 }
 
 /** Helper to get relative time string */
@@ -90,7 +92,7 @@ export const agentLsSchema: OutputSchema<AgentListItem> = {
 };
 
 /** Transform agent snapshot to AgentListItem */
-function toListItem(agent: AgentSnapshotPayload): AgentListItem {
+export function toListItem(agent: AgentSnapshotPayload): AgentListItem {
   const model = normalizeModelId(agent.runtimeInfo?.model) ?? normalizeModelId(agent.model);
   return {
     id: agent.id,
@@ -101,6 +103,7 @@ function toListItem(agent: AgentSnapshotPayload): AgentListItem {
     status: agent.status,
     cwd: shortenPath(agent.cwd),
     created: relativeTime(agent.createdAt),
+    backgroundWork: agent.backgroundWork === true,
   };
 }
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentSnapshotPayload } from "@getpaseo/protocol/messages";
-import { buildAgentLsFetchOptions, listAgents } from "./ls.js";
+import { buildAgentLsFetchOptions, listAgents, toListItem } from "./ls.js";
 
 const daemonTarget = { kind: "endpoint" as const, host: "example.test:12345" };
 
@@ -129,5 +129,23 @@ describe("runLsCommand", () => {
     );
 
     expect(result.data.map((item) => item.name)).toEqual(["agent 3", "agent 2", "agent 1"]);
+  });
+});
+
+describe("toListItem", () => {
+  const snapshot = {
+    id: "0123456789abcdef",
+    provider: "claude",
+    cwd: "/tmp/project",
+    model: null,
+    title: "Busy agent",
+    status: "idle",
+    createdAt: new Date().toISOString(),
+    effectiveThinkingOptionId: null,
+  } as unknown as Parameters<typeof toListItem>[0];
+
+  it("reports background work still running on an idle agent", () => {
+    expect(toListItem({ ...snapshot, backgroundWork: true }).backgroundWork).toBe(true);
+    expect(toListItem(snapshot).backgroundWork).toBe(false);
   });
 });

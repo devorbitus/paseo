@@ -863,6 +863,8 @@ export const AgentSnapshotPayloadSchema = z.object({
   providerUnavailable: z.boolean().optional(),
   // Private helper marker, retained for exact-ID snapshots and older wire messages.
   internal: z.boolean().optional(),
+  // Provider work (background shells, monitors, subagents) still running between turns.
+  backgroundWork: z.boolean().optional(),
 });
 
 export type AgentSnapshotPayload = z.infer<typeof AgentSnapshotPayloadSchema>;
@@ -886,6 +888,7 @@ export const AgentListItemPayloadSchema = z.object({
   attentionTimestamp: z.string().nullable().optional(),
   labels: z.record(z.string(), z.string()).default({}),
   providerUnavailable: z.boolean().optional(),
+  backgroundWork: z.boolean().optional(),
 });
 
 export type AgentListItemPayload = z.infer<typeof AgentListItemPayloadSchema>;
