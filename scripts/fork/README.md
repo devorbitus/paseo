@@ -40,3 +40,6 @@ scripts/fork/ios-setup-wizard.sh
 
 It saves non-secret values to `~/.paseo-fork/ios.env` and the App Store Connect API key and Expo
 token to the login Keychain.
+
+`ios-release.mjs` then builds the app locally (`eas build --local`) and submits it to TestFlight
+whenever app code changed since the last upload. The first run creates the operator's EAS project.
